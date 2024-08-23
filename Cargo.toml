@@ -1,0 +1,10 @@
+[package]
+name = "gator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.16", features = ["derive"] }
+pandoc = "0.8.11"
+pandoc_ast = "0.8.6"
+walkdir = "2.5.0"
