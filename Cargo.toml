@@ -5,6 +5,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.16", features = ["derive"] }
+grass = "0.13.4"
+gray_matter = "0.2.8"
 pandoc = "0.8.11"
 pandoc_ast = "0.8.6"
+pest = "2.7.11"
+pest_derive = "2.7.11"
 walkdir = "2.5.0"
+yaml-rust2 = "0.8.1"
