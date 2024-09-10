@@ -1,3 +1,5 @@
+---
+---
 # Markdown Tests
 
 ## Basic markdown
@@ -102,4 +104,4 @@ graph TD;
 doloremque laudantium_, ~~totam rem aperiam~~, `eaque ipsa quae ab illo` et
 quasi architecto beatae vitae dicta sunt explicabo.
 
-[^5]: >This is an example of a sidenote.
+[^5]: >This is an example of a sidenote
