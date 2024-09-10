@@ -1,0 +1,239 @@
+from util import ScopedEnv, StringBuffer
+
+from pathlib import Path
+from typing import Dict, List, Self
+from abc import abstractmethod
+from typing import Dict, List, Self
+import re
+
+from antlr4 import *
+from grammar.TemplateLexer import TemplateLexer
+from grammar.TemplateParser import TemplateParser
+import grammar.TemplateParserVisitor
+
+
+TEMPLATE_NAME_KEY="t"
+CONTENT='content'
+ARGS='args'
+
+
+class Environment:
+    var: ScopedEnv
+    template: Dict
+    def __init__(self):
+        self.var = ScopedEnv()
+        self.template = dict()
+    def __repr__(self) -> str:
+        return f'Environment({repr(self.var)}, {repr(self.template.keys())})'
+
+def execute(code: str, env: Environment) -> str:
+    output = []
+    def print(*values):
+        output.extend(values)
+    exec(code)
+    return "".join(output)
+
+class Node:
+
+    @abstractmethod
+    def get_children(self) -> List:
+        return []
+
+    @abstractmethod
+    def render(self, o: StringBuffer, env: Environment) -> None:
+        pass
+
+class TextNode(Node):
+    content: str
+    def __init__(self, content):
+        self.content = content
+
+    def render(self, o: StringBuffer, env: Environment) -> None:
+        o.append(self.content)
+
+
+class TemplateContent(Node):
+    elements: List
+    def __init__(self, elements: List):
+        self.elements = elements
+
+    def get_children(self) -> List:
+        return self.elements
+    def render(self, o: StringBuffer, env: Environment) -> None:
+        for e in self.elements:
+            e.render(o, env)
+
+    def __str__(self) -> str:
+        return "\n".join(map(str, self.elements))
+    def __repr__(self) -> str:
+        return str(self)
+
+class TemplateNode(Node):
+    args: Dict
+    content: TemplateContent
+    def __init__(self, args: Dict, content: TemplateContent):
+        self.args = args
+        self.content = content
+
+    def render(self, o: StringBuffer, env: Environment) -> None:
+        if self.content:
+            b = StringBuffer()
+            content = self.content.render(b, env)
+            content = b.flush()
+        else:
+            content = None
+
+        template_name = self.args[TEMPLATE_NAME_KEY]
+        template = env.template[template_name]
+        template.render_with_content(o, env, content)
+
+    def __str__(self) -> str:
+        return f'<template {self.args}>' + str(self.content) + '</template>'
+    def __repr__(self) -> str:
+        return str(self)
+
+class ExecNode(Node):
+    inner: str
+    def __init__(self, inner: str):
+        self.inner = inner
+
+    def render(self, o: StringBuffer, env: Environment):
+        res = execute(self.inner, env)
+        o.append(res)
+
+    def __str__(self) -> str:
+        return f'<exec>{self.inner}</exec>'
+    def __repr__(self) -> str:
+        return str(self)
+
+class ExprNode(Node):
+    inner: str
+    def __init__(self, inner: str):
+        self.inner = inner
+
+    def render(self, o: StringBuffer, env: Environment):
+        res = eval(self.inner)
+        o.append(res)
+
+    def __str__(self) -> str:
+        return '{{' + str(self.inner) + '}}'
+    def __repr__(self) -> str:
+        return str(self)
+
+class ContentNode(Node):
+
+    def render(self, o: StringBuffer, env: Environment):
+        if "content" in env.var:
+            o.append(env.var["content"])
+        else:
+            print("[WARNING] Tried to print content but no content given to template")
+
+    def __str__(self) -> str:
+        return '<content/>'
+    def __repr__(self) -> str:
+        return str(self)
+
+class TemplateGenerator(ParseTreeVisitor):
+
+    def visitRoot(self, ctx:TemplateParser.RootContext):
+        content = self.visitContent(ctx.getChild(0))
+        return Template(content)
+
+    def visitContent(self, ctx:TemplateParser.ContentContext):
+        output = []
+        str_builder = []
+        for child in ctx.getChildren():
+            if type(child) == TemplateParser.TextContext:
+                str_builder.append(child.getText())
+            elif str_builder:
+                text = "".join(str_builder)
+                output.append(TextNode(text))
+                str_builder.clear()
+            if type(child) == TemplateParser.ElementContext:
+                output.append(self.visitElement(child))
+
+        if str_builder:
+            text = "".join(str_builder)
+            output.append(TextNode(text))
+            str_builder.clear()
+
+        return TemplateContent(output)
+
+
+    def visitElement(self, ctx:TemplateParser.ElementContext):
+        child = ctx.getChild(0)
+
+        if type(child) == TemplateParser.Template_elemContext:
+            return self.visitTemplate_elem(child)
+        elif type(child) == TemplateParser.Exec_elementContext:
+            return self.visitExec_element(child)
+        elif type(child) == TemplateParser.Expr_elementContext:
+            return self.visitExpr_element(child)
+        elif type(child) == TemplateParser.Content_elemContext:
+            return self.visitContent_elem(child)
+
+    def visitTemplate_elem(self, ctx:TemplateParser.Template_elemContext):
+        content = ctx.getChild(1)
+        args = ctx.getChild(0).getText()
+        TEMPLATE_TAG_OPENER = "<template"
+        args = args[len(TEMPLATE_TAG_OPENER):-1]
+        args = args.strip()
+        args = eval(f'dict({args})')
+        content_ast = self.visitContent(content)
+        return TemplateNode(args, content_ast)
+
+    def visitContent_elem(self, ctx:TemplateParser.Content_elemContext):
+        return ContentNode()
+
+    def visitExec_element(self, ctx:TemplateParser.Exec_elementContext):
+        text = ctx.getText()
+        opener = "<exec>"
+        closer = "</exec>"
+        return ExecNode(text[len(opener): -len(closer)])
+
+    def visitExpr_element(self, ctx:TemplateParser.Expr_elementContext):
+        text = ctx.getText()
+        text = text[2:-2]
+        text = re.sub(r'\$(\w+)', r'env.var["\1"]', text)
+        return ExprNode(text)
+
+class Template:
+    content: TemplateContent
+    def __init__(self, content):
+        self.content = content
+
+    @staticmethod
+    def from_file(path: Path):
+        with open(path) as f:
+            content = f.read()
+            return Template.from_str(content)
+
+    @staticmethod
+    def from_str(input: str):
+        lexer = TemplateLexer(InputStream(input))
+        stream = CommonTokenStream(lexer)
+        parser = TemplateParser(stream)
+
+        parse_tree = parser.root()
+        ast = TemplateGenerator().visitRoot(parse_tree)
+
+        return ast
+
+    def render(self, env: Environment) -> str:
+        output = StringBuffer()
+        env.var.push()
+        self.content.render(output, env)
+        env.var.pop()
+        res = output.flush()
+        return res
+
+    def render_with_content(self, o: StringBuffer, env: Environment, content: str) -> None:
+        env.var.push()
+        env.var[CONTENT] = content
+        self.content.render(o, env)
+        env.var.pop()
+
+    def __str__(self) -> str:
+        return str(self.content)
+    def __repr__(self) -> str:
+        return str(self)
