@@ -11,7 +11,7 @@ main {
     margin-right: auto;
 }
 
-div.sourceCode {
+pre:has(code) {
     padding: 1em;
     background-color: #fafafa;
 }
