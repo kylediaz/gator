@@ -1,0 +1,1 @@
+antlr -no-listener -visitor -Dlanguage=Python3 gator/grammar/TemplateParser.g4 gator/grammar/TemplateLexer.g4
