@@ -1,2 +1,11 @@
 /target
 /_out
+
+build
+*.egg-info
+.venv
+__pycache__
+
+.antlr
+*.interp
+*.tokens
