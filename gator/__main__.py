@@ -5,6 +5,8 @@ from generator import generate
 
 import http.server
 import socketserver
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
 PORT = 8000
 
@@ -14,6 +16,12 @@ def handler_from(directory):
     return type(f'HandlerFrom<{directory}>',
                 (http.server.SimpleHTTPRequestHandler,),
                 {'__init__': _init, 'directory': directory})
+
+class MyEventHandler(FileSystemEventHandler):
+    def __init__(self, f) -> None:
+        self.f = f
+    def on_any_event(self, event: FileSystemEvent) -> None:
+        self.f(event)
 
 class Cli:
     def __init__(self):
@@ -77,7 +85,23 @@ def main():
     if args.serve:
         with socketserver.TCPServer(("", PORT), handler_from(out_dir)) as httpd:
             print(f"serving at http://localhost:{PORT}")
-            httpd.serve_forever()
+
+            def reload(event: FileSystemEvent):
+                if not event.is_directory and str(out_dir) not in event.src_path:
+                    generate(in_dir, out_dir)
+
+            event_handler = MyEventHandler(reload)
+            observer = Observer()
+            observer.schedule(event_handler, path=in_dir, recursive=True)
+            observer.start()
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                pass
+            finally:
+                httpd.server_close()
+                observer.stop()
+                observer.join()
 
 
 if __name__ == '__main__':
