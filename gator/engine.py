@@ -98,8 +98,11 @@ class ExecNode(Node):
         self.inner = inner
 
     def render(self, o: StringBuffer, env: Environment):
-        res = execute(self.inner, env)
-        o.append(res)
+        try:
+            res = execute(self.inner, env)
+            o.append(res)
+        except SyntaxError as e:
+            raise SyntaxError(f"Error when executing {self.inner}: {e}")
 
     def __str__(self) -> str:
         return f'<exec>{self.inner}</exec>'
@@ -112,8 +115,11 @@ class ExprNode(Node):
         self.inner = inner
 
     def render(self, o: StringBuffer, env: Environment):
-        res = eval(self.inner)
-        o.append(res)
+        try:
+            res = eval(self.inner)
+            o.append(res)
+        except SyntaxError as e:
+            raise SyntaxError(f"Error when evaluating {self.inner}: {e}")
 
     def __str__(self) -> str:
         return '{{' + str(self.inner) + '}}'
@@ -173,13 +179,17 @@ class TemplateGenerator(ParseTreeVisitor):
             return self.visitContent_elem(child)
 
     def visitTemplate_elem(self, ctx:TemplateParser.Template_elemContext):
-        content = ctx.getChild(1)
         args = ctx.getChild(0).getText()
         TEMPLATE_TAG_OPENER = "<template"
         args = args[len(TEMPLATE_TAG_OPENER):-1]
         args = args.strip()
         args = eval(f'dict({args})')
-        content_ast = self.visitContent(content)
+
+        if ctx.getChildCount() == 3:
+            content = ctx.getChild(1)
+            content_ast = self.visitContent(content)
+        else:
+            content_ast = TemplateContent([])
         return TemplateNode(args, content_ast)
 
     def visitContent_elem(self, ctx:TemplateParser.Content_elemContext):

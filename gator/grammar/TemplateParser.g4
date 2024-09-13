@@ -14,7 +14,7 @@ element
     | expr_element;
 
 template_elem
-    : OPEN_TEMPLATE text? (element text?)* CLOSE_TEMPLATE
+    : OPEN_TEMPLATE content? CLOSE_TEMPLATE
     ;
 
 content_elem: CONTENT;
