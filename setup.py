@@ -8,7 +8,12 @@ setup(
     author="Kyle Diaz",
     author_email="dev@kylediaz.com",
     scripts=["scripts/gator"],
-    packages=["gator"],
+    entry_points={
+        'console_scripts': [
+            'gator=gator.__main__:main'
+        ]
+    },
+    packages=["gator", "gator.grammar"],
     classifiers=[
         "Programming Language :: Python :: 3",
     ],
