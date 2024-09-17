@@ -1,6 +1,9 @@
 antlr4-python3-runtime==4.13.2
 frontmatter==3.0.8
+libsass==0.23.0
+pandoc==2.4
 plumbum==1.8.3
 ply==3.11
 pypandoc==1.13
 PyYAML==5.1
+watchdog==5.0.2
