@@ -15,13 +15,17 @@ def change_file_extension(url: str, new_ext: str) -> str:
 
 def walk_files(dir: Path):
     for root, _, files in os.walk(dir):
-        #root = root.removeprefix(str(dir) + os.sep)
         for file in files:
             yield Path(root, file)
 
 def get_file_content(path: str) -> str:
     with open(path) as f:
         return f.read()
+
+def write_file(path: str, content: str):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w+") as f:
+        f.write(content)
 
 class StringBuffer:
     buffer: List
@@ -35,6 +39,7 @@ class StringBuffer:
 
 class FileSink:
     def __init__(self, file_path: str) -> None:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         self.f = open(file_path, "w+")
     def append(self, v: str) -> None:
         self.f.write(v)

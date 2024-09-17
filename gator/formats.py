@@ -1,10 +1,11 @@
-from gator.util import StringBuffer
 import pypandoc
 import yaml
 from pathlib import Path
 from typing import Dict, Tuple
 import json
 from frontmatter import Frontmatter
+
+from gator.util import StringBuffer
 
 def md_to_html(content: str) -> str:
     filters = []

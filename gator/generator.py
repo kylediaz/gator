@@ -1,14 +1,17 @@
 from pathlib import Path
 from typing import Dict, Tuple
-import util
 import os
 import shutil
 from frontmatter import Frontmatter
+import sass
 
-from engine import Template, Environment
-import formats
+import gator.util as util
+from gator.engine import Template, Environment
+import gator.formats as formats
 
 def generate(in_dir: Path, out_dir: Path):
+
+    print("Starting generation...")
 
     gator_dir = in_dir.joinpath(".gator")
     env = __setup_env(gator_dir)
@@ -28,13 +31,18 @@ def generate(in_dir: Path, out_dir: Path):
 
     for root, dirs, files in os.walk(in_dir):
         # Skip ".gator" directories
-        if '.gator' in dirs:
-            dirs.remove('.gator')
+        dirs[:] = [
+            d for d in dirs
+            if d != '.gator'
+            and not d.startswith("_")
+            and not d.startswith(".")
+        ]
 
         # traverse files
         for file in files:
             env.var.push()
             path = os.path.join(root, file)
+            print(f"Processing {path}...")
 
             def get_rendered_content() -> Tuple[Dict, str]:
                 page = Frontmatter.read_file(path)
@@ -70,22 +78,26 @@ def generate(in_dir: Path, out_dir: Path):
                     else:
                         print("[ERROR] Template", template, "not found")
                 else:
-                    with open(out_path, "w+") as f:
-                        f.write(html)
+                    util.write_file(out_path, html)
 
             elif file.endswith('.scss'):
-                pass
+                raw_scss = util.get_file_content(path)
+                converted_css = sass.compile(string=raw_scss, output_style='compressed')
+                out_path = to_output_path(path, new_ext='css')
+                util.write_file(out_path, converted_css)
             else:
                 out_path = to_output_path(path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
                 shutil.copyfile(path, out_path)
 
+            print("Processed", path)
             env.var.pop()
 
 
 def __setup_env(env_dir: Path) -> Environment:
     output = Environment()
     for file in util.walk_files(env_dir):
+        print(f"Processing config file {file}...")
         if file.name.endswith(".yaml"):
             vars = formats.read_yaml(file)
             output.var.update(vars)

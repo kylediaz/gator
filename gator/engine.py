@@ -1,4 +1,4 @@
-from util import ScopedEnv, StringBuffer
+from gator.util import ScopedEnv, StringBuffer
 
 from pathlib import Path
 from typing import Dict, List, Self
@@ -7,9 +7,9 @@ from typing import Dict, List, Self
 import re
 
 from antlr4 import *
-from grammar.TemplateLexer import TemplateLexer
-from grammar.TemplateParser import TemplateParser
-import grammar.TemplateParserVisitor
+from gator.grammar.TemplateLexer import TemplateLexer
+from gator.grammar.TemplateParser import TemplateParser
+import gator.grammar.TemplateParserVisitor
 
 
 TEMPLATE_NAME_KEY="t"

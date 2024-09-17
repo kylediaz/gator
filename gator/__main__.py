@@ -1,7 +1,7 @@
 import argparse
 import os
 from pathlib import Path
-from generator import generate
+from gator.generator import generate
 
 import http.server
 import socketserver
