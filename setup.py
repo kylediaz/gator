@@ -1,5 +1,15 @@
 from setuptools import setup
 
+import pathlib
+import pkg_resources
+
+with pathlib.Path('requirements.txt').open() as requirements_txt:
+    install_requires = [
+        str(requirement)
+        for requirement
+        in pkg_resources.parse_requirements(requirements_txt)
+    ]
+
 setup(
     name="gator",
     description="The best static site generator you'll ever see",
@@ -17,4 +27,5 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
     ],
+    install_requires=install_requires,
 )
