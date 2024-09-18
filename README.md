@@ -16,11 +16,11 @@ Gator is a static-site generator. It transforms a directory
 of markdown files and HTML templates into a website.
 
 ```bash
-cargo install
+pip3 install git+https://github.com/kylediaz/gator
 ```
 
-```bash
-gator [--server]
+```
+gator [-i | --in_dir=.] [-o | --out_dir=_out] [-s | --serve]
 ```
 
 # Features
