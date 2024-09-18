@@ -1,4 +1,5 @@
 from gator.util import ScopedEnv, StringBuffer
+import gator.executor
 
 from pathlib import Path
 from typing import Dict, List, Self
@@ -25,13 +26,6 @@ class Environment:
         self.template = dict()
     def __repr__(self) -> str:
         return f'Environment({repr(self.var)}, {repr(self.template.keys())})'
-
-def execute(code: str, env: Environment) -> str:
-    output = []
-    def print(*values):
-        output.extend(values)
-    exec(code)
-    return "".join(output)
 
 class Node:
 
@@ -99,7 +93,7 @@ class ExecNode(Node):
 
     def render(self, o: StringBuffer, env: Environment):
         try:
-            res = execute(self.inner, env)
+            res = gator.executor.exec(self.inner, env)
             o.append(res)
         except SyntaxError as e:
             raise SyntaxError(f"Error when executing {self.inner}: {e}")
@@ -116,7 +110,7 @@ class ExprNode(Node):
 
     def render(self, o: StringBuffer, env: Environment):
         try:
-            res = eval(self.inner)
+            res = gator.executor.eval(self.inner, env)
             o.append(res)
         except SyntaxError as e:
             raise SyntaxError(f"Error when evaluating {self.inner}: {e}")
