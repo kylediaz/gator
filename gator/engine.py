@@ -139,6 +139,10 @@ class ContentNode(Node):
     def __repr__(self) -> str:
         return str(self)
 
+def preprocess_code(code: str) -> str:
+    code = re.sub(r'\$(\w+)', r'env.var["\1"]', code)
+    return code
+
 class TemplateGenerator(ParseTreeVisitor):
 
     def visitRoot(self, ctx:TemplateParser.RootContext):
@@ -199,13 +203,15 @@ class TemplateGenerator(ParseTreeVisitor):
         text = ctx.getText()
         opener = "<exec>"
         closer = "</exec>"
-        return ExecNode(text[len(opener): -len(closer)])
+        code = text[len(opener): -len(closer)]
+        code = preprocess_code(code)
+        return ExecNode(code)
 
     def visitExpr_element(self, ctx:TemplateParser.Expr_elementContext):
         text = ctx.getText()
-        text = text[2:-2]
-        text = re.sub(r'\$(\w+)', r'env.var["\1"]', text)
-        return ExprNode(text)
+        code = text[2:-2]
+        code = preprocess_code(code)
+        return ExprNode(code)
 
 class Template:
     content: TemplateContent

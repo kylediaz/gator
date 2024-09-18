@@ -34,7 +34,7 @@ class StringBuffer:
     def append(self, v: str) -> None:
         self.buffer.append(v)
     def flush(self) -> str:
-        return "".join(self.buffer)
+        return "".join(map(str, self.buffer))
         self.buffer.clear()
 
 class FileSink:
