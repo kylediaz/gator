@@ -45,7 +45,7 @@ def ipynb_to_md(content: str) -> Tuple[Dict, str]:
                     output.append("\" />\n")
                 elif output_cell["output_type"] == "stream":
                     stream_data = "".join(output_cell["text"])
-                    output.append("\n<pre>\n")
+                    output.append("\n<pre class='cell_output'>\n")
                     output.append(stream_data)
                     output.append("</pre>\n")
         else:
