@@ -2,9 +2,8 @@ from gator.util import ScopedEnv, StringBuffer
 import gator.executor
 
 from pathlib import Path
-from typing import Dict, List, Self
+from typing import Dict, List
 from abc import abstractmethod
-from typing import Dict, List, Self
 import re
 
 from antlr4 import *
