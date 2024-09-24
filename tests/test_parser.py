@@ -1,7 +1,7 @@
 import unittest
 from gator.engine import Environment, Template
 
-class TestTemplate(unittest.TestCase):
+class TestParser(unittest.TestCase):
 
     def test_basic_tag(self):
         Template.from_str("<template>content</template>")

@@ -9,6 +9,7 @@ class TestTemplate(unittest.TestCase):
 
         assert Template.from_str("{{ 1 }}").render(env) == "1"
         assert Template.from_str("test {{ 1 }}").render(env) == "test 1"
+        assert Template.from_str("{{ 1 + 1 }}").render(env) == "2"
         assert Template.from_str("{{ $test_var }}").render(env) == "test_val"
         assert Template.from_str("test {{ $test_var }}").render(env) == "test test_val"
         assert Template.from_str("{{ 1 if $test_var else 0 }}").render(env) == "1"

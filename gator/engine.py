@@ -78,7 +78,10 @@ class TemplateNode(Node):
 
         template_name = self.args[TEMPLATE_NAME_KEY]
         template = env.template[template_name]
+        env.var.push()
+        env.var.update(self.args)
         template.render_with_content(o, env, content)
+        env.var.pop()
 
     def __str__(self) -> str:
         return f'<template {self.args}>' + str(self.content) + '</template>'
