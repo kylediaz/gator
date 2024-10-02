@@ -2,6 +2,8 @@
 title: Gator -- Static Site Generator
 ---
 
+# Gator -- Static Site Generator
+
 ```txt
 <template t="gator.txt"> </template>
 ```

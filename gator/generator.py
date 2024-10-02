@@ -10,9 +10,6 @@ from gator.engine import Template, Environment
 import gator.formats as formats
 
 def generate(in_dir: Path, out_dir: Path):
-
-    print("Starting generation...")
-
     gator_dir = in_dir.joinpath(".gator")
     env = __setup_env(gator_dir)
 
@@ -42,7 +39,6 @@ def generate(in_dir: Path, out_dir: Path):
         for file in files:
             env.var.push()
             path = os.path.join(root, file)
-            print(f"Processing {path}...")
 
             def get_rendered_content() -> Tuple[Dict, str]:
                 page = Frontmatter.read_file(path)
@@ -89,15 +85,12 @@ def generate(in_dir: Path, out_dir: Path):
                 out_path = to_output_path(path)
                 os.makedirs(os.path.dirname(out_path), exist_ok=True)
                 shutil.copyfile(path, out_path)
-
-            print("Processed", path)
             env.var.pop()
 
 
 def __setup_env(env_dir: Path) -> Environment:
     output = Environment()
     for file in util.walk_files(env_dir):
-        print(f"Processing config file {file}...")
         if file.name.endswith(".yaml"):
             vars = formats.read_yaml(file)
             output.var.update(vars)
