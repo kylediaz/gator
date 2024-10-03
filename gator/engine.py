@@ -113,7 +113,9 @@ class ExprNode(Node):
     def render(self, o: StringBuffer, env: Environment):
         try:
             res = gator_code.eval(self.inner, env)
-            o.append(res)
+            if res == None:
+                print('[Warning] ', self.inner, 'resulted in a None output')
+            o.append(str(res))
         except SyntaxError as e:
             raise SyntaxError(f"Error when evaluating {self.inner}: {e}")
 
@@ -138,8 +140,7 @@ class ContentNode(Node):
 class TemplateGenerator(ParseTreeVisitor):
 
     def visitRoot(self, ctx:TemplateParser.RootContext):
-        content = self.visitContent(ctx.getChild(0))
-        return Template(content)
+        return self.visitContent(ctx.getChild(0))
 
     def visitContent(self, ctx:TemplateParser.ContentContext):
         output = []
@@ -204,8 +205,13 @@ class TemplateGenerator(ParseTreeVisitor):
         return ExprNode(code)
 
 class Template:
+
     content: TemplateContent
-    def __init__(self, content):
+
+    __create_key = object()
+    def __init__(self, content, create_key=None):
+        assert(create_key == Template.__create_key), \
+                "Template objects must be created using Template.from_str or Template.from_file"
         self.content = content
 
     @staticmethod
@@ -221,9 +227,9 @@ class Template:
         parser = TemplateParser(stream)
 
         parse_tree = parser.root()
-        ast = TemplateGenerator().visitRoot(parse_tree)
+        template_content = TemplateGenerator().visitRoot(parse_tree)
 
-        return ast
+        return Template(template_content, create_key=Template.__create_key)
 
     def render(self, env: Environment) -> str:
         output = StringBuffer()

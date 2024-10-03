@@ -18,7 +18,7 @@ def walk_files(dir: Path):
         for file in files:
             yield Path(root, file)
 
-def get_file_content(path: str) -> str:
+def get_file_content(path: Path) -> str:
     with open(path) as f:
         return f.read()
 

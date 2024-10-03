@@ -5,6 +5,7 @@ import shutil
 from frontmatter import Frontmatter
 import sass
 
+from gator.site import Site, Page, File
 import gator.util as util
 from gator.engine import Template, Environment
 import gator.formats as formats
@@ -19,74 +20,8 @@ def generate(in_dir: Path, out_dir: Path):
         print("Error: %s - %s." % (e.filename, e.strerror))
     os.makedirs(out_dir, exist_ok=True)
 
-    def to_output_path(in_path, new_ext=None) -> str:
-        out_path = path.removeprefix(str(in_dir))
-        out_path = str(out_dir) + out_path
-        if new_ext != None:
-            out_path = util.change_file_extension(out_path, new_ext)
-        return out_path
-
-    for root, dirs, files in os.walk(in_dir):
-        # Skip ".gator" directories
-        dirs[:] = [
-            d for d in dirs
-            if d != '.gator'
-            and not d.startswith("_")
-            and not d.startswith(".")
-        ]
-
-        # traverse files
-        for file in files:
-            env.var.push()
-            path = os.path.join(root, file)
-
-            def get_rendered_content() -> Tuple[Dict, str]:
-                page = Frontmatter.read_file(path)
-                template = Template.from_str(page['body'])
-                fm = page['attributes']
-                env.var.update(fm)
-                content = template.render(env)
-                return fm, content
-
-            fm, html = {}, None
-            if file.endswith('.md'):
-                fm, content = get_rendered_content()
-                html = formats.md_to_html(content)
-            elif file.endswith('.ipynb'):
-                ipynb = util.get_file_content(path)
-                fm, md = formats.ipynb_to_md(ipynb)
-                env.var.update(fm)
-                content = Template.from_str(md).render(env)
-                html = formats.md_to_html(content)
-            elif file.endswith('.html'):
-                fm, html = get_rendered_content()
-
-            if html != None:
-                out_path = to_output_path(path, new_ext='html')
-
-                template = env.var["template"]
-                if template != None:
-                    if template in env.template:
-                        template = env.template[template]
-                        sink = util.FileSink(out_path)
-                        html = template.render_with_content(sink, env, html)
-                        sink.flush()
-                    else:
-                        print("[ERROR] Template", template, "not found")
-                else:
-                    util.write_file(out_path, html)
-
-            elif file.endswith('.scss'):
-                raw_scss = util.get_file_content(path)
-                converted_css = sass.compile(string=raw_scss, output_style='compressed')
-                out_path = to_output_path(path, new_ext='css')
-                util.write_file(out_path, converted_css)
-            else:
-                out_path = to_output_path(path)
-                os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                shutil.copyfile(path, out_path)
-            env.var.pop()
-
+    site = __map_site(in_dir)
+    __render_site(site, out_dir, env)
 
 def __setup_env(env_dir: Path) -> Environment:
     output = Environment()
@@ -99,3 +34,84 @@ def __setup_env(env_dir: Path) -> Environment:
             output.template[file.name] = new_template
 
     return output
+
+def __map_site(in_dir: Path) -> Site:
+    pages = {}
+    files = []
+
+    for file in util.walk_files(in_dir):
+        rel_path = file.relative_to(in_dir)
+
+        if file.name.startswith("_") or file.name.startswith(".") \
+                or Path(".gator") in rel_path.parents:
+            continue
+
+        vars, html = {}, None
+        if file.name.endswith('.md'):
+            vars, content = __parse_page(file)
+            html = formats.md_to_html(content)
+        elif file.name.endswith('.ipynb'):
+            ipynb = util.get_file_content(file)
+            vars, markdown = formats.ipynb_to_md(ipynb)
+            html = markdown
+        elif file.name.endswith('.html'):
+            vars, html = __parse_page(file)
+
+        if html != None:
+            page = Page(rel_path, vars, html)
+            pages[rel_path.as_posix()] = page
+        else:
+            files.append(File(file))
+
+    output = Site()
+    output.pages = pages
+    output.files = files
+    return output
+
+def __parse_page(path: Path) -> Tuple[Dict, str]:
+    """parses the frontmatter and body content of a file"""
+    page = Frontmatter.read_file(path)
+    vars = page['attributes']
+    content = page['body']
+    return (vars, content)
+
+def __render_site(site: Site, out_dir: Path, env: Environment) -> None:
+
+    for file in site.files:
+        __render_file(file, out_dir)
+
+    for page in site.pages.values():
+        __render_page(page, out_dir, env)
+
+
+def __render_file(file: File, out_dir: Path) -> None:
+    if file.path.name.endswith('.scss'):
+        raw_scss = util.get_file_content(file.path)
+        converted_css = sass.compile(string=raw_scss, output_style='compressed')
+        out_path = out_dir.joinpath(file.path.with_suffix(".css")).as_posix()
+        util.write_file(out_path, converted_css)
+    else:
+        out_path = out_dir.joinpath(file.path).as_posix()
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        shutil.copyfile(file.path, out_path)
+
+def __render_page(page: Page, out_dir: Path, env: Environment) -> None:
+    out_path = out_dir.joinpath(page.path.with_suffix(".html"))
+
+    env.var.push()
+    env.var.update(page.vars)
+    html = Template.from_str(page.raw_content).render(env)
+
+    template_name = env.var["template"]
+    if template_name != None:
+        if template_name in env.template:
+            template = env.template[template_name]
+            sink = util.FileSink(out_path.as_posix())
+            html = template.render_with_content(sink, env, html)
+            sink.flush()
+        else:
+            print("[ERROR] Template", template_name, "not found")
+    else:
+        util.write_file(out_path.as_posix(), html)
+
+    env.var.pop()
