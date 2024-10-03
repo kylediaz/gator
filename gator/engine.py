@@ -1,5 +1,5 @@
 from gator.util import ScopedEnv, StringBuffer
-import gator.executor
+import gator.code_executor as gator_code
 
 from pathlib import Path
 from typing import Dict, List
@@ -95,7 +95,7 @@ class ExecNode(Node):
 
     def render(self, o: StringBuffer, env: Environment):
         try:
-            res = gator.executor.exec(self.inner, env)
+            res = gator_code.exec(self.inner, env)
             o.append(res)
         except SyntaxError as e:
             raise SyntaxError(f"Error when executing {self.inner}: {e}")
@@ -112,7 +112,7 @@ class ExprNode(Node):
 
     def render(self, o: StringBuffer, env: Environment):
         try:
-            res = gator.executor.eval(self.inner, env)
+            res = gator_code.eval(self.inner, env)
             o.append(res)
         except SyntaxError as e:
             raise SyntaxError(f"Error when evaluating {self.inner}: {e}")
@@ -134,10 +134,6 @@ class ContentNode(Node):
         return '<content/>'
     def __repr__(self) -> str:
         return str(self)
-
-def preprocess_code(code: str) -> str:
-    code = re.sub(r'\$(\w+)', r'env.var["\1"]', code)
-    return code
 
 class TemplateGenerator(ParseTreeVisitor):
 
@@ -200,13 +196,11 @@ class TemplateGenerator(ParseTreeVisitor):
         opener = "<exec>"
         closer = "</exec>"
         code = text[len(opener): -len(closer)]
-        code = preprocess_code(code)
         return ExecNode(code)
 
     def visitExpr_element(self, ctx:TemplateParser.Expr_elementContext):
         text = ctx.getText()
         code = text[2:-2]
-        code = preprocess_code(code)
         return ExprNode(code)
 
 class Template:
