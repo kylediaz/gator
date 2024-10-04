@@ -9,7 +9,9 @@ import math
 import re
 import datetime
 
-from gator.util import StringBuffer
+from gator.site import Page as __Page
+from gator.util import StringBuffer as __StringBuffer
+from typing import List as __List
 
 __python_exec = exec
 __python_eval = eval
@@ -48,13 +50,16 @@ def __remove_indent(code: str) -> str:
     return "\n".join(lines)
 
 def exec(code: str, env) -> str:
-    __output = StringBuffer()
+    __output = __StringBuffer()
     def print(*values):
         for v in values:
             __output.write(v)
 
     def template(template_name: str, content: None | str = None, **kwargs) -> None:
         env.template[template_name].render(__output, env, content=content)
+
+    def pages(in_dir: str = "") -> __List[__Page]:
+        return [page for path, page in env.site.pages.items() if path.startswith(in_dir)]
 
     code = __preprocess_code(code)
     code = __remove_indent(code)

@@ -1,5 +1,6 @@
 from gator.util import FileOutputStream, OutputStream, ScopedEnv, StringBuffer
 import gator.code_executor as gator_code
+from gator.site import Site
 
 from pathlib import Path
 from typing import Dict, List
@@ -19,6 +20,7 @@ ARGS='args'
 
 class Environment:
     var: ScopedEnv
+    site: Site
     template: Dict
     def __init__(self):
         self.var = ScopedEnv()

@@ -21,6 +21,7 @@ def generate(in_dir: Path, out_dir: Path):
     os.makedirs(out_dir, exist_ok=True)
 
     site = __map_site(in_dir)
+    env.site = site
     __render_site(site, out_dir, env)
 
 def __setup_env(env_dir: Path) -> Environment:
