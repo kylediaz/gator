@@ -30,24 +30,24 @@ def ipynb_to_md(content: str) -> Tuple[Dict, str]:
                 data = Frontmatter.read(md)
                 md = data["body"]
                 frontmatter.update(data["attributes"])
-            output.append(md)
+            output.write(md)
         elif cell["cell_type"] == "code":
             source = "".join(cell["source"])
             if not source.startswith("#!OMIT_CODE"):
-                output.append("\n```python\n")
-                output.append(source)
-                output.append("\n```\n")
+                output.write("\n```python\n")
+                output.write(source)
+                output.write("\n```\n")
             for output_cell in cell["outputs"]:
                 if output_cell["output_type"] == "display_data":
                     data = output_cell["data"]["image/png"]
-                    output.append("\n<img src=\"data:image/png;base64,")
-                    output.append(data)
-                    output.append("\" />\n")
+                    output.write("\n<img src=\"data:image/png;base64,")
+                    output.write(data)
+                    output.write("\" />\n")
                 elif output_cell["output_type"] == "stream":
                     stream_data = "".join(output_cell["text"])
-                    output.append("\n<pre class='cell_output'>\n")
-                    output.append(stream_data)
-                    output.append("</pre>\n")
+                    output.write("\n<pre class='cell_output'>\n")
+                    output.write(stream_data)
+                    output.write("</pre>\n")
         else:
             print(f'[WARNING] Unexpected .ipynb cell type {cell["cell_type"]}')
     output = output.flush()
