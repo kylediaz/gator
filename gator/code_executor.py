@@ -19,6 +19,34 @@ def __preprocess_code(code: str) -> str:
     code = re.sub(r'\$(\w+)', r'env.var["\1"]', code)
     return code
 
+def __first_non_whitespace_index(s):
+    for index, char in enumerate(s):
+        if not char.isspace():
+            return index
+    return -1
+
+def __remove_indent(code: str) -> str:
+    """
+    We need to remove indents because the code in the template may be indented
+    like so:
+    <div>
+    ----<exec>
+    --------print("this is a test)
+    ----</exec>
+    </div>
+    but python exec() expects code given to it to initially have indentation
+    level 0
+    """
+    lines = code.split("\n")
+    first_code_line = next((i for i, l in enumerate(lines) if len(l.strip()) > 0), -1)
+    if first_code_line == -1:
+        return code
+    i = __first_non_whitespace_index(lines[first_code_line])
+    if i == -1:
+        return code
+    lines = [l[i:] if i <= len(l) else l for l in lines]
+    return "\n".join(lines)
+
 def exec(code: str, env) -> str:
     __output = StringBuffer()
     def print(*values):
@@ -29,6 +57,7 @@ def exec(code: str, env) -> str:
         env.template[template_name].render(__output, env, content=content)
 
     code = __preprocess_code(code)
+    code = __remove_indent(code)
     __python_exec(code)
     return __output.flush()
 
