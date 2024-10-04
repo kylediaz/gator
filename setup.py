@@ -13,7 +13,7 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
 setup(
     name="gator",
     description="The best static site generator you'll ever see",
-    version="0.0.2",
+    version="0.0.9",
     url="https://github.com/kylediaz/gator",
     author="Kyle Diaz",
     author_email="dev@kylediaz.com",
