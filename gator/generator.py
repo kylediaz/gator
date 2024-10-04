@@ -106,18 +106,19 @@ def __render_page(page: Page, out_dir: Path, env: Environment) -> None:
 
     env.var.push()
     env.var.update(page.vars)
-    html = Template.from_str(page.raw_content).render(env)
+
+    content_template = Template.from_str(page.raw_content)
 
     template_name = env.var["template"]
     if template_name != None:
         if template_name in env.template:
             template = env.template[template_name]
-            sink = util.FileSink(out_path.as_posix())
-            html = template.render_with_content(sink, env, html)
-            sink.flush()
+            output = util.FileOutputStream(out_path.as_posix())
+            html = template.render(output, env, content_template)
+            output.flush()
         else:
-            print("[ERROR] Template", template_name, "not found")
+            print("[ERROR] In", page, " template", template_name, "not found")
     else:
-        util.write_file(out_path.as_posix(), html)
+        content_template.render_to_file(out_path, env)
 
     env.var.pop()

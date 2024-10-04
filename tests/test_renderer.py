@@ -9,12 +9,13 @@ class Testrender_to_strer(unittest.TestCase):
         env.template["t"] = Template.from_str("[t content]")
         self.assertEqual(Template.from_str("<template t='t'></template>").render_to_str(env), "[t content]")
 
-        env.var[CONTENT] = "[content]"
-        self.assertEqual(Template.from_str("[t]<content />[t]").render_to_str(env), '[t][content][t]')
-        env.var[CONTENT] = None
+        self.assertEqual(Template.from_str("[t]<content />[t]").render_to_str(env, content='[content]'), '[t][content][t]')
 
         env.template["tc"] = Template.from_str("[t]<content/>[t]")
-        self.assertEqual(Template.from_str("[T]<template t='tc'>[content]</template>[T]").render_to_str(env), "[T][t][content][t][T]")
+        self.assertEqual(
+            Template.from_str("[T]<template t='tc'>[content]</template>[T]").render_to_str(env, content='[content]'),
+            "[T][t][content][t][T]"
+        )
 
     def test_template_vars(self):
         env = Environment()

@@ -7,6 +7,9 @@ Code execution environment for <exec> and {{}} blocks
 
 import math
 import re
+import datetime
+
+from gator.util import StringBuffer
 
 __python_exec = exec
 __python_eval = eval
@@ -17,12 +20,17 @@ def __preprocess_code(code: str) -> str:
     return code
 
 def exec(code: str, env) -> str:
-    __output = []
+    __output = StringBuffer()
     def print(*values):
-        __output.extend(values)
+        for v in values:
+            __output.write(v)
+
+    def template(template_name: str, content: None | str = None, **kwargs) -> None:
+        env.template[template_name].render(__output, env, content=content)
+
     code = __preprocess_code(code)
     __python_exec(code)
-    return "".join(__output)
+    return __output.flush()
 
 def eval(code: str, env) -> str:
     code = __preprocess_code(code)

@@ -1,9 +1,9 @@
-from gator.util import ScopedEnv, StringBuffer
+from gator.util import FileOutputStream, OutputStream, ScopedEnv, StringBuffer
 import gator.code_executor as gator_code
 
 from pathlib import Path
 from typing import Dict, List
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 import re
 
 from antlr4 import *
@@ -26,33 +26,24 @@ class Environment:
     def __repr__(self) -> str:
         return f'Environment({repr(self.var)}, {repr(self.template.keys())})'
 
-class Node:
-
+class Node(ABC):
     @abstractmethod
-    def get_children(self) -> List:
-        return []
-
-    @abstractmethod
-    def render(self, o: StringBuffer, env: Environment) -> None:
+    def render(self, o: OutputStream, env: Environment) -> None:
         pass
 
 class TextNode(Node):
     content: str
     def __init__(self, content):
         self.content = content
-
-    def render(self, o: StringBuffer, env: Environment) -> None:
-        o.append(self.content)
-
+    def render(self, o: OutputStream, env: Environment) -> None:
+        o.write(self.content)
 
 class TemplateContent(Node):
     elements: List
     def __init__(self, elements: List):
         self.elements = elements
 
-    def get_children(self) -> List:
-        return self.elements
-    def render(self, o: StringBuffer, env: Environment) -> None:
+    def render(self, o: OutputStream, env: Environment) -> None:
         for e in self.elements:
             e.render(o, env)
 
@@ -68,19 +59,12 @@ class TemplateNode(Node):
         self.args = args
         self.content = content
 
-    def render(self, o: StringBuffer, env: Environment) -> None:
-        if self.content:
-            b = StringBuffer()
-            content = self.content.render(b, env)
-            content = b.flush()
-        else:
-            content = None
-
+    def render(self, o: OutputStream, env: Environment) -> None:
         template_name = self.args[TEMPLATE_NAME_KEY]
         template = env.template[template_name]
         env.var.push()
         env.var.update(self.args)
-        template.render_with_content(o, env, content)
+        template.render(o, env, self.content)
         env.var.pop()
 
     def __str__(self) -> str:
@@ -93,12 +77,12 @@ class ExecNode(Node):
     def __init__(self, inner: str):
         self.inner = inner
 
-    def render(self, o: StringBuffer, env: Environment):
+    def render(self, o: OutputStream, env: Environment):
         try:
             res = gator_code.exec(self.inner, env)
-            o.append(res)
+            o.write(res)
         except SyntaxError as e:
-            raise SyntaxError(f"Error when executing {self.inner}: {e}")
+            raise SyntaxError(f"[ERROR] When executing {self.inner}: {e}")
 
     def __str__(self) -> str:
         return f'<exec>{self.inner}</exec>'
@@ -110,12 +94,12 @@ class ExprNode(Node):
     def __init__(self, inner: str):
         self.inner = inner
 
-    def render(self, o: StringBuffer, env: Environment):
+    def render(self, o: OutputStream, env: Environment):
         try:
             res = gator_code.eval(self.inner, env)
             if res == None:
                 print('[Warning] ', self.inner, 'resulted in a None output')
-            o.append(str(res))
+            o.write(str(res))
         except SyntaxError as e:
             raise SyntaxError(f"Error when evaluating {self.inner}: {e}")
 
@@ -125,12 +109,18 @@ class ExprNode(Node):
         return str(self)
 
 class ContentNode(Node):
-
-    def render(self, o: StringBuffer, env: Environment):
-        if "content" in env.var:
-            o.append(env.var["content"])
+    def render(self, o: OutputStream, env: Environment):
+        if "content" in env.var and (content := env.var["content"]) != None:
+            if isinstance(content, str):
+                o.write(content)
+            elif isinstance(content, TemplateContent):
+                content.render(o, env)
+            elif isinstance(content, Template):
+                content.render(o, env)
+            else:
+                print("[ERROR] Unexpected content type", type(content))
         else:
-            print("[WARNING] Tried to print content but no content given to template")
+            print("[WARNING] Tried to print content but no content was given")
 
     def __str__(self) -> str:
         return '<content/>'
@@ -231,19 +221,21 @@ class Template:
 
         return Template(template_content, create_key=Template.__create_key)
 
-    def render(self, env: Environment) -> str:
-        output = StringBuffer()
-        env.var.push()
-        self.content.render(output, env)
-        env.var.pop()
-        res = output.flush()
-        return res
-
-    def render_with_content(self, o: StringBuffer, env: Environment, content: str) -> None:
+    def render(self, o: OutputStream, env: Environment, content: str | TemplateContent | None = None) -> None:
         env.var.push()
         env.var[CONTENT] = content
         self.content.render(o, env)
         env.var.pop()
+
+    def render_to_str(self, env: Environment, content: str | TemplateContent | None = None) -> str:
+        output = StringBuffer()
+        self.render(output, env, content)
+        return output.flush()
+
+    def render_to_file(self, file_path: Path, env: Environment, content: str | TemplateContent | None = None) -> None:
+        output = FileOutputStream(file_path.as_posix())
+        self.render(output, env, content)
+        output.flush()
 
     def __str__(self) -> str:
         return str(self.content)
