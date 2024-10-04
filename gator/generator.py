@@ -78,10 +78,16 @@ def __parse_page(path: Path) -> Tuple[Dict, str]:
 def __render_site(site: Site, out_dir: Path, env: Environment) -> None:
 
     for file in site.files:
-        __render_file(file, out_dir)
+        try:
+            __render_file(file, out_dir)
+        except Exception as e:
+            print('[ERROR] When rendering', file.path, e)
 
     for page in site.pages.values():
-        __render_page(page, out_dir, env)
+        try:
+            __render_page(page, out_dir, env)
+        except Exception as e:
+            print('[ERROR] When rendering', page.path, e)
 
 
 def __render_file(file: File, out_dir: Path) -> None:
