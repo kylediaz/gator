@@ -4,8 +4,10 @@ from typing import Any, List, Dict
 from urllib.parse import urlparse
 from abc import ABC, abstractmethod
 
-def walk_files(dir: Path):
-    for root, _, files in os.walk(dir):
+def walk_files(dir: Path, ignore_dot=True):
+    for root, dirs, files in os.walk(dir):
+        if ignore_dot:
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
         for file in files:
             yield Path(root, file)
 
