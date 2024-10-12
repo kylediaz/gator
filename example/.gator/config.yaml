@@ -2,4 +2,4 @@ template: "base.html"
 
 site_title: "Gator Example Website"
 main_style: "/css/css.css"
-gator_version: "0.0.1"
+gator_version: "0.0.12"

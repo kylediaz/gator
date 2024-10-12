@@ -43,8 +43,7 @@ def __map_site(in_dir: Path) -> Site:
     for file in util.walk_files(in_dir):
         rel_path = file.relative_to(in_dir)
 
-        if file.name.startswith("_") or file.name.startswith(".") \
-                or Path(".gator") in rel_path.parents:
+        if file.name.startswith("_") or file.name.startswith("."):
             continue
 
         vars, html = {}, None
@@ -54,15 +53,16 @@ def __map_site(in_dir: Path) -> Site:
         elif file.name.endswith('.ipynb'):
             ipynb = util.get_file_content(file)
             vars, markdown = formats.ipynb_to_md(ipynb)
-            html = markdown
+            html = formats.md_to_html(markdown)
         elif file.name.endswith('.html'):
             vars, html = __parse_page(file)
 
         if html != None:
+            rel_path = rel_path.with_suffix(".html")
             page = Page(rel_path, vars, html)
             pages[rel_path.as_posix()] = page
         else:
-            files.append(File(file))
+            files.append(File(file.relative_to(in_dir), file))
 
     output = Site()
     output.pages = pages
@@ -93,17 +93,17 @@ def __render_site(site: Site, out_dir: Path, env: Environment) -> None:
 
 def __render_file(file: File, out_dir: Path) -> None:
     if file.path.name.endswith('.scss'):
-        raw_scss = util.get_file_content(file.path)
+        raw_scss = util.get_file_content(file.source_path)
         converted_css = sass.compile(string=raw_scss, output_style='compressed')
         out_path = out_dir.joinpath(file.path.with_suffix(".css")).as_posix()
         util.write_file(out_path, converted_css)
     else:
         out_path = out_dir.joinpath(file.path).as_posix()
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        shutil.copyfile(file.path, out_path)
+        shutil.copyfile(file.source_path, out_path)
 
 def __render_page(page: Page, out_dir: Path, env: Environment) -> None:
-    out_path = out_dir.joinpath(page.path.with_suffix(".html"))
+    out_path = out_dir.joinpath(page.path)
 
     env.var.push()
     env.var.update(page.vars)
