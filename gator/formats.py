@@ -25,7 +25,7 @@ def ipynb_to_md(content: str) -> Tuple[Dict, str]:
     frontmatter = {}
     for cell in notebook["cells"]:
         if cell["cell_type"] == "markdown":
-            md = "".join(cell["source"])
+            md = "".join(cell["source"]) + "\n"
             if md.startswith("---"):
                 data = Frontmatter.read(md)
                 md = data["body"]
