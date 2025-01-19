@@ -7,7 +7,7 @@ Code execution environment for <exec> and {{}} blocks
 
 import math
 import re
-import datetime
+from datetime import date, datetime, timedelta
 
 from gator.site import Page as __Page
 from gator.util import StringBuffer as __StringBuffer
