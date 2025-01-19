@@ -48,6 +48,15 @@ def ipynb_to_md(content: str) -> Tuple[Dict, str]:
                     output.write("\n<pre class='cell_output'>\n")
                     output.write(stream_data)
                     output.write("</pre>\n")
+                elif output_cell["output_type"] == "execute_result":
+                    if "text/html" in output_cell["data"]:
+                        stream_data = "".join(output_cell["data"]["text/html"])
+                        output.write(stream_data)
+                    elif "text/plain" in output_cell["data"]:
+                        stream_data = "".join(output_cell["data"]["text/plain"])
+                        output.write(stream_data)
+                else:
+                    print(f'[WARNING] Unknown ipynb output type {output_cell['output_type']}')
         else:
             print(f'[WARNING] Unexpected .ipynb cell type {cell["cell_type"]}')
     output = output.flush()
