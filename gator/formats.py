@@ -30,6 +30,7 @@ def ipynb_to_md(content: str) -> Tuple[Dict, str]:
                 data = Frontmatter.read(md)
                 md = data["body"]
                 frontmatter.update(data["attributes"])
+            output.write("\n")
             output.write(md)
         elif cell["cell_type"] == "code":
             source = "".join(cell["source"])
