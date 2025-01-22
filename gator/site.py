@@ -24,6 +24,7 @@ class File:
     A file is something that gets copied over to the output directory as-is
     """
     path: Path
+    source_path: Path
 
 class Site:
     pages: Dict[str, Page]
