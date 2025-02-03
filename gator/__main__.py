@@ -1,27 +1,12 @@
 import argparse
 import os
+import sys
 from pathlib import Path
+
+import server
 from gator.generator import generate
 
-import http.server
-import socketserver
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileSystemEvent
-
 PORT = 8000
-
-def handler_from(directory):
-    def _init(self, *args, **kwargs):
-        return http.server.SimpleHTTPRequestHandler.__init__(self, *args, directory=self.directory, **kwargs)
-    return type(f'HandlerFrom<{directory}>',
-                (http.server.SimpleHTTPRequestHandler,),
-                {'__init__': _init, 'directory': directory})
-
-class MyEventHandler(FileSystemEventHandler):
-    def __init__(self, f) -> None:
-        self.f = f
-    def on_any_event(self, event: FileSystemEvent) -> None:
-        self.f(event)
 
 class Cli:
     def __init__(self):
@@ -78,30 +63,16 @@ def main():
         valid_input = False
 
     if not valid_input:
-        return
+        sys.exit(1)
 
-    generate(in_dir, out_dir)
+    try:
+        generate(in_dir, out_dir)
+    except Exception as e:
+        print(f'[ERROR] {e}')
+        sys.exit(1)
 
     if args.serve:
-        with socketserver.TCPServer(("", PORT), handler_from(out_dir)) as httpd:
-            print(f"serving at http://localhost:{PORT}")
-
-            def reload(event: FileSystemEvent):
-                if not event.is_directory and str(out_dir) not in event.src_path:
-                    generate(in_dir, out_dir)
-
-            event_handler = MyEventHandler(reload)
-            observer = Observer()
-            observer.schedule(event_handler, path=in_dir, recursive=True)
-            observer.start()
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                pass
-            finally:
-                httpd.server_close()
-                observer.stop()
-                observer.join()
+        server.serve(in_dir, out_dir, port=PORT)
 
 
 if __name__ == '__main__':

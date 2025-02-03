@@ -1,8 +1,15 @@
 import os
+import http.server
 from pathlib import Path
 from typing import Any, List, Dict
-from urllib.parse import urlparse
 from abc import ABC, abstractmethod
+
+def handler_from(directory):
+    def _init(self, *args, **kwargs):
+        return http.server.SimpleHTTPRequestHandler.__init__(self, *args, directory=self.directory, **kwargs)
+    return type(f'HandlerFrom<{directory}>',
+                (http.server.SimpleHTTPRequestHandler,),
+                {'__init__': _init, 'directory': directory})
 
 def walk_files(dir: Path, ignore_dot=True):
     for root, dirs, files in os.walk(dir):
