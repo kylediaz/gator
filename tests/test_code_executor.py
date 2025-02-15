@@ -1,6 +1,8 @@
 from types import FunctionType
 import unittest
+
 import gator.code_executor as ce
+from gator.engine import Environment, Template
 
 class TestCodeExecutor(unittest.TestCase):
     def test_code_preprocessor(self):
@@ -29,3 +31,10 @@ class TestCodeExecutor(unittest.TestCase):
         """
         res = remove_indent(code)
         self.assertEqual(res, "\nline 1\n    line 2\n        line 3\n    line 4\nline 5\n")
+
+    def test_code_executor(self):
+        env = Environment()
+        env.var['test_var'] = 'test_val'
+        self.assertEqual(Template.from_str("<exec></exec>").render_to_str(env), "")
+        self.assertEqual(Template.from_str("<exec>print('test')</exec>").render_to_str(env), "test")
+        self.assertEqual(Template.from_str("<exec>print($test_var)</exec>").render_to_str(env), "test_val")
