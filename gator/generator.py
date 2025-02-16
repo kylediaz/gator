@@ -1,6 +1,7 @@
+import os
+import sys
 from pathlib import Path
 from typing import Dict, Tuple
-import os
 import shutil
 from frontmatter import Frontmatter
 import sass
@@ -13,15 +14,16 @@ import gator.formats as formats
 def generate(in_dir: Path, out_dir: Path):
     gator_dir = in_dir.joinpath(".gator")
     env = __setup_env(gator_dir)
+    site = __map_site(in_dir)
+    env.site = site
 
     try:
         shutil.rmtree(out_dir)
     except OSError as e:
         print("Error: %s - %s." % (e.filename, e.strerror))
+        sys.exit(1)
     os.makedirs(out_dir, exist_ok=True)
 
-    site = __map_site(in_dir)
-    env.site = site
     __render_site(site, out_dir, env)
 
 def __setup_env(env_dir: Path) -> Environment:
@@ -33,7 +35,6 @@ def __setup_env(env_dir: Path) -> Environment:
         else:
             new_template = Template.from_file(file)
             output.template[file.name] = new_template
-
     return output
 
 def __map_site(in_dir: Path) -> Site:
@@ -64,10 +65,7 @@ def __map_site(in_dir: Path) -> Site:
         else:
             files.append(File(file.relative_to(in_dir), file))
 
-    output = Site()
-    output.pages = pages
-    output.files = files
-    return output
+    return Site(pages, files)
 
 def __parse_page(path: Path) -> Tuple[Dict, str]:
     """parses the frontmatter and body content of a file"""
@@ -115,7 +113,7 @@ def __render_page(page: Page, out_dir: Path, env: Environment) -> None:
         if template_name in env.template:
             template = env.template[template_name]
             output = util.FileOutputStream(out_path.as_posix())
-            html = template.render(output, env, content_template)
+            template.render(output, env, content_template)
             output.flush()
         else:
             print("[ERROR] In", page, " template", template_name, "not found")

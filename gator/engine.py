@@ -5,12 +5,11 @@ from gator.site import Site
 from pathlib import Path
 from typing import Dict, List
 from abc import abstractmethod, ABC
-import re
 
-from antlr4 import *
+from antlr4 import InputStream, ParseTreeVisitor, CommonTokenStream
+
 from gator.grammar.TemplateLexer import TemplateLexer
 from gator.grammar.TemplateParser import TemplateParser
-import gator.grammar.TemplateParserVisitor
 
 
 TEMPLATE_NAME_KEY="t"
@@ -120,7 +119,7 @@ class ContentNode(Node):
             elif isinstance(content, Template):
                 content.render(o, env)
             else:
-                print("[ERROR] Unexpected content type", type(content))
+                raise Exception("[ERROR] Unexpected content type", type(content))
         else:
             print("[WARNING] Tried to print content but no content was given")
 

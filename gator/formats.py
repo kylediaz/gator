@@ -1,11 +1,13 @@
 import pypandoc
 import yaml
 from pathlib import Path
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 import json
 from frontmatter import Frontmatter
 
 from gator.util import StringBuffer
+
+### Markdown
 
 def md_to_html(content: str) -> str:
     filters = []
@@ -18,6 +20,8 @@ def md_to_html(content: str) -> str:
         extra_args=extra_args
     )
     return html
+
+### IPython Notebook
 
 def ipynb_to_md(content: str) -> Tuple[Dict, str]:
     notebook = json.loads(content)
@@ -74,6 +78,7 @@ def __is_html_type(output_cell: Dict) -> str | None:
     if output_cell["output_type"] == "execute_result" and "text/html" in output_cell["data"]:
         return "".join(output_cell["data"]["text/html"])
 
+### YAML
 
 def read_yaml(file: Path) -> Dict:
     with open(file) as stream:

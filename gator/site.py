@@ -30,6 +30,10 @@ class Site:
     pages: Dict[str, Page]
     files: List[File]
 
+    def __init__(self, pages: Dict[str, Page], files: List[File]) -> None:
+        self.pages = pages
+        self.files = files
+
     def pages_in_dir(self, dir: str) -> List[Page]:
         return [
             page
