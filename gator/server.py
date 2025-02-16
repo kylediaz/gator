@@ -6,7 +6,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
-import util
+import gator.util as util
 from gator.generator import generate
 
 class MyEventHandler(FileSystemEventHandler):

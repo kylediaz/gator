@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-import server
+import gator.server as server
 from gator.generator import generate
 
 PORT = 8000
